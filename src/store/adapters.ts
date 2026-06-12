@@ -1,4 +1,5 @@
 import type { Node as RFNode, Edge as RFEdge } from '@xyflow/react'
+import { MarkerType } from '@xyflow/react'
 import { DiagramNode, DiagramEdge } from './types'
 
 export function toRFNode(node: DiagramNode): RFNode {
@@ -25,6 +26,7 @@ export function toRFEdge(edge: DiagramEdge): RFEdge {
     targetHandle: edge.targetHandle,
     type: 'custom',
     label: edge.label,
+    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(240 5% 84%)' },
     data: {
       style: edge.style,
       marker: edge.marker,
