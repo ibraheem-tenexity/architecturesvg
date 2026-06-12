@@ -9,7 +9,7 @@ export default function AppShell() {
       <Toolbar />
       <div className="flex flex-1 overflow-hidden">
         <NodePalette />
-        <CanvasArea hasNodes={false} />
+        <CanvasArea />
         <PropertiesPanel />
       </div>
     </div>
