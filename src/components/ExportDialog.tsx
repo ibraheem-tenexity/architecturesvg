@@ -19,29 +19,16 @@ async function downloadSVG(svgString: string) {
   URL.revokeObjectURL(url)
 }
 
-async function downloadPNG(svgString: string): Promise<void> {
-  return new Promise((resolve) => {
-    const blob = new Blob([svgString], { type: 'image/svg+xml' })
-    const url = URL.createObjectURL(blob)
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = img.width * 2
-      canvas.height = img.height * 2
-      const ctx = canvas.getContext('2d')!
-      ctx.scale(2, 2)
-      ctx.drawImage(img, 0, 0)
-      canvas.toBlob((pngBlob) => {
-        const a = document.createElement('a')
-        a.href = URL.createObjectURL(pngBlob!)
-        a.download = 'diagram.png'
-        a.click()
-        resolve()
-      })
-      URL.revokeObjectURL(url)
-    }
-    img.src = url
-  })
+async function downloadPNG(svgString: string, transparent: boolean): Promise<void> {
+  // Lazy-load the rasterizer module so it is not in the initial bundle
+  const { rasterize } = await import('../utils/pngRasterizer')
+  const blob = await rasterize(svgString, { scale: 2, transparent })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'diagram.png'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function ExportDialog({ open, onClose }: ExportDialogProps) {
@@ -49,6 +36,7 @@ export default function ExportDialog({ open, onClose }: ExportDialogProps) {
   const [svgPreview, setSvgPreview] = useState<string>('')
   const [showSuccess, setShowSuccess] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [transparentBg, setTransparentBg] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -81,7 +69,7 @@ export default function ExportDialog({ open, onClose }: ExportDialogProps) {
       if (format === 'svg') {
         await downloadSVG(svgPreview)
       } else {
-        await downloadPNG(svgPreview)
+        await downloadPNG(svgPreview, transparentBg)
       }
       setShowSuccess(true)
       setTimeout(() => {
@@ -143,6 +131,21 @@ export default function ExportDialog({ open, onClose }: ExportDialogProps) {
             PNG
           </button>
         </div>
+
+        {/* PNG options */}
+        {format === 'png' && (
+          <div className="flex items-center gap-2 text-sm text-text-secondary">
+            <input
+              id="transparent-bg"
+              type="checkbox"
+              checked={transparentBg}
+              onChange={(e) => setTransparentBg(e.target.checked)}
+              className="accent-brand"
+            />
+            <label htmlFor="transparent-bg">Transparent background</label>
+            <span className="ml-2 text-text-tertiary">(2× DPI)</span>
+          </div>
+        )}
 
         {/* SVG Preview */}
         <div className="flex-1 overflow-auto min-h-0">
