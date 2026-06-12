@@ -12,6 +12,13 @@ export default function AppShell() {
         <CanvasArea />
         <PropertiesPanel />
       </div>
+      <div
+        data-testid="a11y-live"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        id="a11y-live"
+      />
     </div>
   )
 }

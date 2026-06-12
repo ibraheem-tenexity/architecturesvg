@@ -7,22 +7,47 @@ import {
   useNodesState,
   useEdgesState,
 } from '@xyflow/react'
-import type { Node, Edge } from '@xyflow/react'
+import type { Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { useEffect } from 'react'
 import { nodeTypes } from './canvas/CustomNode'
 import { edgeTypes } from './canvas/CustomEdge'
+import { useDiagramStore } from '../store/diagramStore'
+import type { NodeType } from '../store/diagramStore'
 
-const initialNodes: Node[] = []
 const initialEdges: Edge[] = []
 
 export default function CanvasArea() {
-  const [nodes, , onNodesChange] = useNodesState(initialNodes)
+  const storeNodes = useDiagramStore((s) => s.nodes)
+  const addNode = useDiagramStore((s) => s.addNode)
+  const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes)
   const [edges, , onEdgesChange] = useEdgesState(initialEdges)
+
+  // Keep local ReactFlow state in sync with store
+  useEffect(() => {
+    setNodes(storeNodes)
+  }, [storeNodes, setNodes])
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const type = e.dataTransfer.getData('application/architecturesvg-node') as NodeType
+    if (!type) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const position = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    addNode(type, position)
+  }
 
   return (
     <div
       data-testid="canvas"
       className="relative flex-1 bg-sunken overflow-hidden"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       {nodes.length === 0 && (
         <div
