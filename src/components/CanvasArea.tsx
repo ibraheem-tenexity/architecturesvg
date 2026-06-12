@@ -7,12 +7,13 @@ import {
 } from '@xyflow/react'
 import type { NodeChange, EdgeChange, Connection } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { nodeTypes } from './canvas/CustomNode'
 import { edgeTypes } from './canvas/CustomEdge'
 import { useDiagramStore } from '../store/useDiagramStore'
 import { toRFNode, toRFEdge } from '../store/adapters'
 import type { NodeType } from '../store/types'
+import { announce } from '../utils/a11y'
 
 export default function CanvasArea() {
   const { document: doc, moveNode, addEdge, addNode } = useDiagramStore()
@@ -48,6 +49,44 @@ export default function CanvasArea() {
     },
     [addEdge]
   )
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+
+      const { selectedNodeId, connectingFrom, addEdge: storeAddEdge, setConnectingFrom, deleteNode, deleteEdge, selectedEdgeId, undo, redo } = useDiagramStore.getState()
+
+      if (e.key === 'c' || e.key === 'C') {
+        if (selectedNodeId && !connectingFrom) {
+          setConnectingFrom(selectedNodeId)
+          announce('Connect mode: click a node to connect to')
+        }
+        return
+      }
+
+      if (e.key === 'Escape') {
+        setConnectingFrom(null)
+        return
+      }
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedNodeId) deleteNode(selectedNodeId)
+        else if (selectedEdgeId) deleteEdge(selectedEdgeId)
+        return
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) redo()
+        else undo()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -96,6 +135,17 @@ export default function CanvasArea() {
         minZoom={0.1}
         maxZoom={4}
         className="h-full w-full"
+        onPaneClick={() => {
+          const { connectingFrom, setConnectingFrom, selectNode } = useDiagramStore.getState()
+          if (connectingFrom) {
+            setConnectingFrom(null)
+          } else {
+            selectNode(null)
+          }
+        }}
+        onEdgeClick={(_, edge) => {
+          useDiagramStore.getState().selectEdge(edge.id)
+        }}
       >
         <Background
           variant={BackgroundVariant.Dots}
