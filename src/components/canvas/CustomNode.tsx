@@ -2,6 +2,7 @@ import { NodeProps, Handle, Position } from '@xyflow/react'
 import { useDiagramStore } from '../../store/useDiagramStore'
 import { useRef, useEffect } from 'react'
 import type { NodeType } from '../../store/types'
+import { announce } from '../../utils/a11y'
 
 // Viz-ramp accent colors per node type
 const ACCENT_COLORS: Record<NodeType, string> = {
@@ -40,9 +41,12 @@ export function CustomNode({ id, data, selected }: NodeProps) {
   const accentColor = nodeData.style?.accent || ACCENT_COLORS[nodeType]
   const label = nodeData.label || ''
 
-  const { editingNodeId, setNodeLabel, setEditingNodeId, selectNode } = useDiagramStore()
+  const { editingNodeId, setNodeLabel, setEditingNodeId, selectNode, connectingFrom, addEdge, setConnectingFrom } = useDiagramStore()
   const isEditing = editingNodeId === id
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const isConnectSource = connectingFrom === id
+  const isConnectTarget = !!connectingFrom && connectingFrom !== id
 
   // Auto-focus input when this node enters edit mode
   useEffect(() => {
@@ -57,7 +61,7 @@ export function CustomNode({ id, data, selected }: NodeProps) {
     selectNode(id)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
       handleLabelCommit(e.currentTarget.value)
@@ -73,19 +77,45 @@ export function CustomNode({ id, data, selected }: NodeProps) {
     setEditingNodeId(id)
   }
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    if (connectingFrom && connectingFrom !== id) {
+      // Complete the connection
+      addEdge(connectingFrom, id)
+      setConnectingFrom(null)
+      announce('Connected')
+      return
+    }
+
+    if (!editingNodeId) {
+      selectNode(id)
+    }
+  }
+
+  let ringClass = ''
+  if (isConnectSource) {
+    ringClass = 'ring-2 ring-brand ring-offset-1 ring-offset-background'
+  } else if (isConnectTarget) {
+    ringClass = 'ring-2 ring-brand/40'
+  }
+
   return (
     <div
       data-testid="canvas-node"
       data-node-id={id}
       className={`
-        relative bg-card rounded-lg border overflow-hidden select-none cursor-default
+        relative bg-card rounded-lg border overflow-hidden select-none
         transition-shadow duration-fast
+        ${isConnectTarget ? 'cursor-crosshair' : 'cursor-default'}
         ${selected
           ? 'border-brand shadow-[0_0_0_2px_hsl(var(--brand))]'
           : 'border-border-default shadow-sm hover:shadow-md'
         }
+        ${ringClass}
       `}
       style={{ minWidth: 140, minHeight: 52 }}
+      onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
       {/* 3px left accent bar */}
@@ -119,7 +149,7 @@ export function CustomNode({ id, data, selected }: NodeProps) {
             "
             placeholder="Node label..."
             onBlur={(e) => handleLabelCommit(e.currentTarget.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleInputKeyDown}
           />
         ) : (
           <span className="flex-1 text-body-sm font-medium text-text-primary truncate">
@@ -128,20 +158,20 @@ export function CustomNode({ id, data, selected }: NodeProps) {
         )}
       </div>
 
-      {/* React Flow connection handles */}
+      {/* React Flow connection handles — always visible so Playwright can find them */}
       <Handle
         type="source"
         position={Position.Right}
         data-testid="node-handle-source"
-        className="!w-3 !h-3 !bg-brand !border-2 !border-background !rounded-full opacity-0 hover:opacity-100 transition-opacity"
-        style={{ right: -6 }}
+        className="!w-3 !h-3 !bg-brand !border-2 !border-raised !rounded-full"
+        style={{ right: -6, opacity: 1 }}
       />
       <Handle
         type="target"
         position={Position.Left}
         data-testid="node-handle-target"
-        className="!w-3 !h-3 !bg-brand !border-2 !border-background !rounded-full opacity-0 hover:opacity-100 transition-opacity"
-        style={{ left: -6 }}
+        className="!w-3 !h-3 !bg-brand !border-2 !border-raised !rounded-full"
+        style={{ left: -6, opacity: 1 }}
       />
     </div>
   )
