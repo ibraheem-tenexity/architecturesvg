@@ -7,14 +7,15 @@ import {
 } from '@xyflow/react'
 import type { NodeChange, EdgeChange, Connection } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { useCallback } from 'react'
 import { nodeTypes } from './canvas/CustomNode'
 import { edgeTypes } from './canvas/CustomEdge'
 import { useDiagramStore } from '../store/useDiagramStore'
 import { toRFNode, toRFEdge } from '../store/adapters'
-import { useCallback } from 'react'
+import type { NodeType } from '../store/types'
 
 export default function CanvasArea() {
-  const { document: doc, moveNode, addEdge } = useDiagramStore()
+  const { document: doc, moveNode, addEdge, addNode } = useDiagramStore()
 
   const rfNodes = doc.nodes.map(toRFNode)
   const rfEdges = doc.edges.map(toRFEdge)
@@ -48,10 +49,26 @@ export default function CanvasArea() {
     [addEdge]
   )
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const type = e.dataTransfer.getData('application/architecturesvg-node') as NodeType
+    if (!type) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const position = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    addNode(type, position)
+  }
+
   return (
     <div
       data-testid="canvas"
       className="relative flex-1 bg-sunken overflow-hidden"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       {rfNodes.length === 0 && (
         <div
