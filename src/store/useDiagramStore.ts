@@ -22,12 +22,15 @@ function now(): string {
   return new Date().toISOString()
 }
 
+export type SaveStatus = 'saved' | 'saving' | 'error' | 'idle'
+
 interface DiagramStore {
   document: DiagramDocument
   selectedNodeId: string | null
   selectedEdgeId: string | null
   connectingFrom: string | null  // node id we're connecting from (C key mode)
   editingNodeId: string | null   // node id currently being label-edited
+  saveStatus: SaveStatus
 
   // Node actions
   addNode: (type: NodeType, position: { x: number; y: number }) => string
@@ -56,6 +59,12 @@ interface DiagramStore {
   resetDocument: () => void
   loadDocument: (doc: DiagramDocument) => void
 
+  // Theme
+  setTheme: (theme: 'light' | 'dark' | 'adaptive') => void
+
+  // Save status
+  setSaveStatus: (status: SaveStatus) => void
+
   // Undo/Redo (simple history)
   history: DiagramDocument[]
   historyIndex: number
@@ -82,6 +91,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   selectedEdgeId: null,
   connectingFrom: null,
   editingNodeId: null,
+  saveStatus: 'idle',
   history: [initialDocument],
   historyIndex: 0,
 
@@ -195,6 +205,23 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   loadDocument: (doc) => {
     set({ document: doc, history: [doc], historyIndex: 0, selectedNodeId: null, selectedEdgeId: null })
   },
+
+  setTheme: (theme) => {
+    set((state) => ({
+      document: {
+        ...state.document,
+        meta: { ...state.document.meta, theme, updatedAt: now() },
+      },
+    }))
+    // Apply theme class to document root for Tailwind dark: variants
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  },
+
+  setSaveStatus: (status) => set({ saveStatus: status }),
 
   pushHistory: () => {
     set((state) => {
