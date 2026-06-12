@@ -1,3 +1,4 @@
+// T1: scaffold complete
 export default function App() {
   return (
     <div className="flex h-screen w-screen bg-background text-foreground items-center justify-center">
