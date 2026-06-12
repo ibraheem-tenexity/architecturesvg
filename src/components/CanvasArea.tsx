@@ -4,29 +4,50 @@ import {
   BackgroundVariant,
   MiniMap,
   Controls,
-  useNodesState,
-  useEdgesState,
 } from '@xyflow/react'
-import type { Edge } from '@xyflow/react'
+import type { NodeChange, EdgeChange, Connection } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useEffect } from 'react'
+import { useCallback } from 'react'
 import { nodeTypes } from './canvas/CustomNode'
 import { edgeTypes } from './canvas/CustomEdge'
-import { useDiagramStore } from '../store/diagramStore'
-import type { NodeType } from '../store/diagramStore'
-
-const initialEdges: Edge[] = []
+import { useDiagramStore } from '../store/useDiagramStore'
+import { toRFNode, toRFEdge } from '../store/adapters'
+import type { NodeType } from '../store/types'
 
 export default function CanvasArea() {
-  const storeNodes = useDiagramStore((s) => s.nodes)
-  const addNode = useDiagramStore((s) => s.addNode)
-  const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes)
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges)
+  const { document: doc, moveNode, addEdge, addNode } = useDiagramStore()
 
-  // Keep local ReactFlow state in sync with store
-  useEffect(() => {
-    setNodes(storeNodes)
-  }, [storeNodes, setNodes])
+  const rfNodes = doc.nodes.map(toRFNode)
+  const rfEdges = doc.edges.map(toRFEdge)
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      changes.forEach((change) => {
+        if (change.type === 'position' && change.position) {
+          moveNode(change.id, change.position)
+        }
+      })
+    },
+    [moveNode]
+  )
+
+  const onEdgesChange = useCallback((_changes: EdgeChange[]) => {
+    // handled by addEdge/deleteEdge
+  }, [])
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      if (connection.source && connection.target) {
+        addEdge(
+          connection.source,
+          connection.target,
+          connection.sourceHandle ?? undefined,
+          connection.targetHandle ?? undefined
+        )
+      }
+    },
+    [addEdge]
+  )
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -49,7 +70,7 @@ export default function CanvasArea() {
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {nodes.length === 0 && (
+      {rfNodes.length === 0 && (
         <div
           data-testid="canvas-empty-state"
           className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
@@ -62,10 +83,11 @@ export default function CanvasArea() {
         </div>
       )}
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={rfNodes}
+        edges={rfEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
