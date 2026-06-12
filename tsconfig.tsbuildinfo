@@ -1,1 +1,1 @@
-{"root":["./src/App.tsx","./src/main.tsx"],"version":"5.9.3"}
+{"root":["./src/App.tsx","./src/main.tsx","./src/components/AppShell.tsx","./src/components/CanvasArea.tsx","./src/components/NodePalette.tsx","./src/components/PropertiesPanel.tsx","./src/components/Toolbar.tsx","./src/components/canvas/CustomEdge.tsx","./src/components/canvas/CustomNode.tsx","./src/store/adapters.ts","./src/store/types.ts","./src/store/useDiagramStore.ts","./src/types/global.d.ts"],"version":"5.9.3"}

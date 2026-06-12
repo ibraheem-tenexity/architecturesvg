@@ -152,15 +152,15 @@ export default function ExportDialog({ open, onClose }: ExportDialogProps) {
         </div>
 
         {/* Success message */}
-        <div
-          data-testid="export-success"
-          className={`text-sm font-medium text-success px-3 py-2 bg-success/10 rounded-md transition-opacity ${
-            showSuccess ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-          aria-live="polite"
-        >
-          Diagram exported successfully!
-        </div>
+        {showSuccess && (
+          <div
+            data-testid="export-success"
+            className="text-sm font-medium text-success px-3 py-2 bg-success/10 rounded-md"
+            aria-live="polite"
+          >
+            Diagram exported successfully!
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex justify-end gap-2">

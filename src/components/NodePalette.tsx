@@ -1,5 +1,5 @@
-import { useDiagramStore } from '../store/diagramStore'
-import type { NodeType } from '../store/diagramStore'
+import { useDiagramStore } from '../store/useDiagramStore'
+import type { NodeType } from '../store/types'
 import { announce } from '../utils/a11y'
 
 const NODE_TYPES: Array<{ type: NodeType; label: string; icon: string; color: string }> = [
