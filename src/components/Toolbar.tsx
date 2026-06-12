@@ -1,4 +1,8 @@
-export default function Toolbar() {
+interface ToolbarProps {
+  onExport: () => void
+}
+
+export default function Toolbar({ onExport }: ToolbarProps) {
   return (
     <header
       data-testid="toolbar"
@@ -9,6 +13,7 @@ export default function Toolbar() {
       </span>
       <button
         data-testid="export-button"
+        onClick={onExport}
         className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-brand-deep transition-colors"
       >
         Export
