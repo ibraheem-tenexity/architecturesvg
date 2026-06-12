@@ -4,27 +4,56 @@ import {
   BackgroundVariant,
   MiniMap,
   Controls,
-  useNodesState,
-  useEdgesState,
 } from '@xyflow/react'
-import type { Node, Edge } from '@xyflow/react'
+import type { NodeChange, EdgeChange, Connection } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { nodeTypes } from './canvas/CustomNode'
 import { edgeTypes } from './canvas/CustomEdge'
-
-const initialNodes: Node[] = []
-const initialEdges: Edge[] = []
+import { useDiagramStore } from '../store/useDiagramStore'
+import { toRFNode, toRFEdge } from '../store/adapters'
+import { useCallback } from 'react'
 
 export default function CanvasArea() {
-  const [nodes, , onNodesChange] = useNodesState(initialNodes)
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges)
+  const { document: doc, moveNode, addEdge } = useDiagramStore()
+
+  const rfNodes = doc.nodes.map(toRFNode)
+  const rfEdges = doc.edges.map(toRFEdge)
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      changes.forEach((change) => {
+        if (change.type === 'position' && change.position) {
+          moveNode(change.id, change.position)
+        }
+      })
+    },
+    [moveNode]
+  )
+
+  const onEdgesChange = useCallback((_changes: EdgeChange[]) => {
+    // handled by addEdge/deleteEdge
+  }, [])
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      if (connection.source && connection.target) {
+        addEdge(
+          connection.source,
+          connection.target,
+          connection.sourceHandle ?? undefined,
+          connection.targetHandle ?? undefined
+        )
+      }
+    },
+    [addEdge]
+  )
 
   return (
     <div
       data-testid="canvas"
       className="relative flex-1 bg-sunken overflow-hidden"
     >
-      {nodes.length === 0 && (
+      {rfNodes.length === 0 && (
         <div
           data-testid="canvas-empty-state"
           className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
@@ -37,10 +66,11 @@ export default function CanvasArea() {
         </div>
       )}
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={rfNodes}
+        edges={rfEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
